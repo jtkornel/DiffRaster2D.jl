@@ -15,7 +15,7 @@ struct circle
 end
 
 struct scene
-    t :: triangle
+    ts :: Vector{triangle}
     cs :: Vector{circle}
 end
 
@@ -28,32 +28,33 @@ function vector_projection_clamped(u, v)
 
     # w = v * dot(u,v)/dot(v,v) = v * t
 
-    t = (y_u*y_v + x_u*x_v)/(y_v*y_v + x_v*x_v+1.0f-12)
+    t = (y_u.*y_v .+ x_u.*x_v)./(y_v.*y_v + x_v.*x_v .+1.0f-12)
 
-    t = clamp(t, 0, 1)
+    t = clamp.(t, 0, 1)
 
-    x_w = x_v * t
-    y_w = y_v * t
+    x_w = x_v .* t
+    y_w = y_v .* t
 
     return [x_w, y_w]
 end
 
 function point_line_projection(p, a, b)
-    v_ap = p .- a
-    v_ab = b .- a
-    return vector_projection_clamped(v_ap, v_ab) .- v_ap
+    v_ap = [p[1] .- a[1], p[2] .- a[2]]
+    v_ab = [b[1] .- a[1], b[2] .- a[2]]
+
+    v_apPab = vector_projection_clamped(v_ap, v_ab)
+
+    return [v_apPab[1] .- v_ap[1], v_apPab[2] .- v_ap[2]]
 end
 
 function point_line_distance(p, a, b)
     v_pt = point_line_projection(p, a, b)
-    return sqrt(sum(v_pt.^2)+1.0f-12)
+    return sqrt.(v_pt[1].^2 + v_pt[2].^2 .+ 1.0f-12)
 end
 
 function edge_determinant(p, a, b)
-    F = (a[2] - b[2])*p[1] + (b[1] - a[1])*p[2] + (a[1]*b[2] - a[2]*b[1])
-    return -F
+    return ((b[2] .- a[2]).*p[1] .+ (a[1] .- b[1]).*p[2] .+ (a[2].*b[1] .- a[1].*b[2]))
 end
-
 function edge_determinants(p, t :: triangle)
     F_ab = edge_determinant(p, t.a, t.b)
     F_bc = edge_determinant(p, t.b, t.c)
@@ -61,32 +62,32 @@ function edge_determinants(p, t :: triangle)
     return (F_ab, F_bc, F_ca)
 end
 
-function signed_distance_function(ps, t :: triangle)
-    num_ps = length(ps)
-    as = repeat([t.a], num_ps)
-    bs = repeat([t.b], num_ps)
-    cs = repeat([t.c], num_ps)
-    d_ab = point_line_distance.(ps, as, bs)
-    F_ab = edge_determinant.(ps, as, bs)
+function signed_distance_function(ps, t :: triangle) :: Matrix{Float32}
 
-    d_bc = point_line_distance.(ps, bs, cs)
-    F_bc = edge_determinant.(ps, bs, cs)
+    d_ab = point_line_distance(ps, t.a, t.b)
+    F_ab = edge_determinant(ps, t.a, t.b)
 
-    d_ca = point_line_distance.(ps, cs, as)
-    F_ca = edge_determinant.(ps, cs, as)
+    d_bc = point_line_distance(ps, t.b, t.c)
+    F_bc = edge_determinant(ps, t.b, t.c)
+
+    d_ca = point_line_distance(ps, t.c, t.a)
+    F_ca = edge_determinant(ps, t.c, t.a)
 
     s_ab = F_ab .< 0
     s_bc = F_bc .< 0
     s_ca = F_ca .< 0
 
-    a_p = s_ab .& s_bc .& s_ca
-    a_n = .!s_ab .& .!s_bc .& .!s_ca
+    a_p = (s_ab .+ s_bc .+ s_ca) .== 3
+    a_n = (s_ab .+ s_bc .+ s_ca) .== 0
 
-    s = ((a_p .| a_n) .* -2) .+ 1
+    s_p = ( a_p .* -2) .+ 1
+    s_n = ( a_n .* -2) .+ 1
 
-    d = minimum([d_ab d_bc d_ca],dims=2)
+    s = s_p .* s_n
 
-    return Vector{Float32}(s .* d[:])
+    d = dropdims(minimum(cat(d_ab, d_bc, d_ca,dims=3), dims=3), dims=3)
+
+    return (s .* d)
 end
 
 function signed_distance_function(ps, c :: circle) :: Matrix{Float32}
