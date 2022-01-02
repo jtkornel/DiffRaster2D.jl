@@ -105,7 +105,7 @@ function parabolic_kernel_integral(r :: Matrix{Float32}) :: Matrix{Float32}
 end
 
 function sdf_coverage(ps, objs)
-    return [parabolic_kernel_integral(signed_distance_function(ps, obj)) for obj in objs]
+    return [parabolic_kernel_integral(signed_distance_function(ps, obj)) for obj in objs] :: Vector{Matrix{Float32}}
 end
 
 function render_objects(objs, ps)
@@ -124,10 +124,10 @@ function render_objects(objs, ps)
 end
 
 function render_objects(objs, W, H)
-    xs = [x for x in 0:W-1]
-    ys = [y for y in 0:H-1]
+    xs = [Float32(x) for x in 0:W-1] :: Vector{Float32}
+    ys = [Float32(y) for y in 0:H-1] :: Vector{Float32}
     
-    points = (xs', ys)
+    points = (collect(xs'), ys)
     return render_objects(objs, points)
 end
 
