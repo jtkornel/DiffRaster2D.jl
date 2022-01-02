@@ -9,9 +9,8 @@ using FileIO
 include("Diff2DRaster.jl")
 
 
-function render_loss(ref_img :: Array{Float32, 3}, sc :: scene, W, H) :: Float32
-    println("Forward pass...")
-    l = mse(render_objects([sc.cs...], W, H), ref_img) :: Float32
+function render_loss(ref_img :: Array{Float32, 3}, sc :: scene, points) :: Float32
+    l = mse(render_objects([sc.cs...], points), ref_img) :: Float32
     println("Render loss: ", l)
     return l 
 end
@@ -40,17 +39,19 @@ function scene_regularizer(sc :: scene) :: Float32
 
     cr = sum(crs)/length(crs)
 
-    println("Regularizer: ",cr*0.01)
-    return cr*0.01f0
+    reg = cr*0.01f0
+    println("Regularizer: ", reg)
+    return reg
 end
 
 function colortypes_image(img_arr, W, H)
     return [ ColorTypes.RGB{Float32}(img_arr[1,n,m], img_arr[2,n,m], img_arr[3,n,m]) for n=1:H, m=1:W]
 end
 
-function gradient_iteration(scne, img, W, H, d=1)
+function gradient_iteration(scne, img, points, d=1)
     println("Calculating gradient...")
-    gs = gradient((sc)->(render_loss(img, sc, W, H)+scene_regularizer(sc)), scne)[1]
+
+    gs = gradient((sc)->(render_loss(img, sc, points)+scene_regularizer(sc)), scne)[1]
     println("Updating scene...")
     #ts = [triangle(scne.ts[ti].a .- d*gs.ts[ti].a, scne.ts[ti].b .- d*gs.ts[ti].b, scne.ts[ti].c .- d*gs.ts[ti].c, scne.ts[ti].color .- d*gs.ts[ti].color) for ti in 1:length(scne.ts)]
     dummy_tri = [triangle([10.0f0,10.0f0],[200.0f0,0.0f0],[100.0f0,300.0f0], [128.0f0, 12.0f0, 12.0f0])]
@@ -71,7 +72,6 @@ function optimize_scene_to_image()
     H, W = size(img)
     
     img_arr = [ [Float32(x.r) for x in img];;; [Float32(x.g) for x in img];;; [Float32(x.b) for x in img]]*255
-   
     img_arr = permutedims(img_arr, (3, 1,2))
 
     N=16
@@ -83,9 +83,14 @@ function optimize_scene_to_image()
 
     scn = scene(dummy_tri, circs)
 
+    xs = [Float32(x) for x in 0:W-1] :: Vector{Float32}
+    ys = [Float32(y) for y in 0:H-1] :: Vector{Float32}
+    
+    points = (collect(xs'), ys)
+
     for ii in 1:32
         println("iteration $ii")
-        @time scn=gradient_iteration(scn, img_arr, W, H, 6)
+        scn=gradient_iteration(scn, img_arr, points, 6)
     end
 
     show_render(scn, W, H)

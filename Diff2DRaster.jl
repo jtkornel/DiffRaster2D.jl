@@ -20,15 +20,15 @@ struct scene
 end
 
 # u projected onto v, clamped to length of v
-function vector_projection_clamped(u, v)
-    x_u = u[1]
-    y_u = u[2]
-    x_v = v[1]
-    y_v = v[2]
+@views function vector_projection_clamped(u, v)
+    x_u =  u[1]
+    y_u =  u[2]
+    x_v =  v[1]
+    y_v =  v[2]
 
     # w = v * dot(u,v)/dot(v,v) = v * t
 
-    t = (y_u.*y_v .+ x_u.*x_v)./(y_v.*y_v + x_v.*x_v .+1.0f-12)
+    t = @. (y_u*y_v + x_u*x_v)/(y_v*y_v + x_v*x_v + 1.0f-12)
 
     t = clamp.(t, 0, 1)
 
@@ -55,6 +55,7 @@ end
 function edge_determinant(p, a, b)
     return ((b[2] .- a[2]).*p[1] .+ (a[1] .- b[1]).*p[2] .+ (a[2].*b[1] .- a[1].*b[2]))
 end
+
 function edge_determinants(p, t :: triangle)
     F_ab = edge_determinant(p, t.a, t.b)
     F_bc = edge_determinant(p, t.b, t.c)
@@ -91,8 +92,8 @@ function signed_distance_function(ps, t :: triangle) :: Matrix{Float32}
 end
 
 function signed_distance_function(ps, c :: circle) :: Matrix{Float32}
-    cr = c.c
-    r = c.r
+    cr = c.c :: Vector{Float32}
+    r = c.r :: Float32
     xs = ps[1] :: Matrix{Float32}
     ys = ps[2] :: Vector{Float32}
     esq = ((cr[1] .- xs).^2 .+ (cr[2] .- ys).^2)
@@ -104,25 +105,34 @@ function parabolic_kernel_integral(r :: Matrix{Float32}) :: Matrix{Float32}
     return 0.5f0 .+ 0.25f0(rc.^3 - 3rc)
 end
 
-function sdf_coverage(ps, objs) :: Vector{Matrix{Float32}}
-    return [parabolic_kernel_integral(signed_distance_function(ps, obj)) for obj in objs] 
+function sdf_coverage(ps, obj) :: Matrix{Float32}
+    return parabolic_kernel_integral(signed_distance_function(ps, obj))
 end
 
 function render_objects(objs, ps) :: Array{Float32,3}
-    coverages = sdf_coverage(ps, objs)
 
-    cov_sum = sum(coverages)
+    W = length(ps[1])
+    H = length(ps[2])
+
+    r_sum = zeros(Float32, (H, W))
+    g_sum = zeros(Float32, (H, W))
+    b_sum = zeros(Float32, (H, W))
+    cov_sum = zeros(Float32, (H, W))
+
+    for o in objs
+        cov = sdf_coverage(ps, o)
+
+        cov_sum = cov_sum + cov
+
+        r_sum = r_sum + o.color[1] * cov
+        g_sum = g_sum + o.color[2] * cov
+        b_sum = b_sum + o.color[3] * cov
+    end
+
     cov_sum = max.(1.0f0, cov_sum)
 
-    r = sum([o.color[1] for o in objs].*coverages)
-    g = sum([o.color[2] for o in objs].*coverages)
-    b = sum([o.color[3] for o in objs].*coverages)
-
-    N, M = size(r)
-
-
-    cov_sum = reshape(cov_sum, (1,N,M))
-    return permutedims(reshape([r; g; b], (N,3,M)), (2,1,3))./cov_sum
+    cov_sum = reshape(cov_sum, (1,H,W))
+    return permutedims(reshape([r_sum; g_sum; b_sum], (H,3,W)), (2,1,3))./cov_sum
 end
 
 function render_objects(objs, W, H) :: Array{Float32,3}
