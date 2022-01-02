@@ -91,8 +91,8 @@ function signed_distance_function(ps, t :: triangle) :: Matrix{Float32}
 end
 
 function signed_distance_function(ps, c :: circle) :: Matrix{Float32}
-    cr = c.c :: Vector{Float32}
-    r = c.r :: Float32
+    cr = c.c
+    r = c.r
     xs = ps[1] :: Matrix{Float32}
     ys = ps[2] :: Vector{Float32}
     esq = ((cr[1] .- xs).^2 .+ (cr[2] .- ys).^2)
@@ -104,44 +104,45 @@ function parabolic_kernel_integral(r :: Matrix{Float32}) :: Matrix{Float32}
     return 0.5f0 .+ 0.25f0(rc.^3 - 3rc)
 end
 
-function sdf_coverage(ps, objs)
-    return [parabolic_kernel_integral(signed_distance_function(ps, obj)) for obj in objs] :: Vector{Matrix{Float32}}
+function sdf_coverage(ps, objs) :: Vector{Matrix{Float32}}
+    return [parabolic_kernel_integral(signed_distance_function(ps, obj)) for obj in objs] 
 end
 
-function render_objects(objs, ps)
-    n_objs = length(objs)
+function render_objects(objs, ps) :: Array{Float32,3}
     coverages = sdf_coverage(ps, objs)
-    colors = [[c for c in o.color] for o in objs]
 
     cov_sum = sum(coverages)
-    cov_sum = [max(1.0f0, cs) for cs in cov_sum]
+    cov_sum = max.(1.0f0, cov_sum)
 
-    r = sum([colors[oi][1]*coverages[oi] for oi in 1:n_objs])./cov_sum
-    g = sum([colors[oi][2]*coverages[oi] for oi in 1:n_objs])./cov_sum
-    b = sum([colors[oi][3]*coverages[oi] for oi in 1:n_objs])./cov_sum
+    r = sum([o.color[1] for o in objs].*coverages)
+    g = sum([o.color[2] for o in objs].*coverages)
+    b = sum([o.color[3] for o in objs].*coverages)
 
-    return [r,g,b]
+    N, M = size(r)
+
+
+    cov_sum = reshape(cov_sum, (1,N,M))
+    return permutedims(reshape([r; g; b], (N,3,M)), (2,1,3))./cov_sum
 end
 
-function render_objects(objs, W, H)
+function render_objects(objs, W, H) :: Array{Float32,3}
     xs = [Float32(x) for x in 0:W-1] :: Vector{Float32}
     ys = [Float32(y) for y in 0:H-1] :: Vector{Float32}
     
     points = (collect(xs'), ys)
-    return render_objects(objs, points)
+    return render_objects(objs, points) 
 end
 
-function mae(x,y) :: Float32
-    e = x .- y
-    ae = sum([abs.(ec) for ec in e])/length(e)
-    mae = sum(ae)/length(ae)
+function mae(x :: Array{Float32,3}, y :: Array{Float32,3}) :: Float32
+    e = abs.(x .- y)
+    mae = sum(e)/length(e)
     return mae
 end
 
-function mse(x,y) :: Float32
-    e = x .- y
-    se = sum([ec.^2 for ec in e])/length(e)
-    mse = sum(se)/length(se)
+function mse(x :: Array{Float32,3}, y :: Array{Float32,3}) :: Float32
+    e = (x .- y) .^2
+    mse = sum(e)/length(e)
+
     return mse
 end
 

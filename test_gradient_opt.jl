@@ -9,7 +9,7 @@ using FileIO
 include("Diff2DRaster.jl")
 
 
-function render_loss(ref_img, sc :: scene) :: Float32
+function render_loss(ref_img :: Array{Float32, 3}, sc :: scene, W, H) :: Float32
     println("Forward pass...")
     l = mse(render_objects([sc.cs...], W, H), ref_img) :: Float32
     println("Render loss: ", l)
@@ -45,22 +45,22 @@ function scene_regularizer(sc :: scene) :: Float32
 end
 
 function colortypes_image(img_arr, W, H)
-    return [ ColorTypes.RGB{Float32}(img_arr[1][n,m], img_arr[2][n,m], img_arr[3][n,m]) for n=1:H, m=1:W]
+    return [ ColorTypes.RGB{Float32}(img_arr[1,n,m], img_arr[2,n,m], img_arr[3,n,m]) for n=1:H, m=1:W]
 end
 
-function gradient_iteration(scne, img, d=1)
+function gradient_iteration(scne, img, W, H, d=1)
     println("Calculating gradient...")
-    gs = gradient((sc)->(render_loss(img, sc)+scene_regularizer(sc)), scne)[1]
+    gs = gradient((sc)->(render_loss(img, sc, W, H)+scene_regularizer(sc)), scne)[1]
     println("Updating scene...")
     #ts = [triangle(scne.ts[ti].a .- d*gs.ts[ti].a, scne.ts[ti].b .- d*gs.ts[ti].b, scne.ts[ti].c .- d*gs.ts[ti].c, scne.ts[ti].color .- d*gs.ts[ti].color) for ti in 1:length(scne.ts)]
     dummy_tri = [triangle([10.0f0,10.0f0],[200.0f0,0.0f0],[100.0f0,300.0f0], [128.0f0, 12.0f0, 12.0f0])]
 
-    cs = [circle(scne.cs[ci].r .- d*gs.cs[ci].r, scne.cs[ci].c .- d*gs.cs[ci].c,  scne.cs[ci].color .- d*gs.cs[ci].color) for ci in 1:length(scn.cs)]
+    cs = [circle(scne.cs[ci].r .- d*gs.cs[ci].r, scne.cs[ci].c .- d*gs.cs[ci].c,  scne.cs[ci].color .- d*gs.cs[ci].color) for ci in 1:length(scne.cs)]
 
     return scene(dummy_tri, cs)
 end
 
-function show_render()
+function show_render(scn, W, H)
     rn = render_objects([scn.cs...], W, H)
     return colortypes_image(rn/255, W, H)
 end
@@ -70,8 +70,10 @@ function optimize_scene_to_image()
     img = testimage("chelsea")
     H, W = size(img)
     
-    img_arr = [ [Float32(x.r) for x in img], [Float32(x.g) for x in img], [Float32(x.b) for x in img]]*255
+    img_arr = [ [Float32(x.r) for x in img];;; [Float32(x.g) for x in img];;; [Float32(x.b) for x in img]]*255
    
+    img_arr = permutedims(img_arr, (3, 1,2))
+
     N=16
     M=16
 
@@ -83,10 +85,10 @@ function optimize_scene_to_image()
 
     for ii in 1:32
         println("iteration $ii")
-        scn=gradient_iteration(scn, img_arr, 6)
+        @time scn=gradient_iteration(scn, img_arr, W, H, 6)
     end
 
-    show_render()
+    show_render(scn, W, H)
 end
 
 optimize_scene_to_image()
