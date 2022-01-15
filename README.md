@@ -17,9 +17,9 @@ By running for quite a few iterations you should get something like this (render
 
 ## Todo-list
 
-Support more primitives and gradients
-Triangle mesh support
-Tailor for more efficient gradients from Zygote 
-Faster rendering with tiles or kD-tree
-Use a proper deep learning framework for the optimization
+* Support more primitives and gradients
+* Triangle mesh support
+* Tailor for more efficient gradients from Zygote 
+* Faster rendering with tiles or kD-tree
+* Use a proper deep learning framework for the optimization
 
