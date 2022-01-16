@@ -18,6 +18,7 @@ By running for quite a few iterations you should get something like this (render
 ## Todo-list
 
 * Support more primitives and gradient-fill
+* Test that we can recover basic figures and some corner cases (unit tests?)
 * Triangle mesh support
 * Tailor for more efficient gradients from Zygote 
 * Faster rendering with tiles or kD-tree
