@@ -49,7 +49,7 @@ end
 
 function point_line_distance(p, a, b)
     v_pt = point_line_projection(p, a, b)
-    return sqrt.(v_pt[1].^2 + v_pt[2].^2 .+ 1.0f-12)
+    return sqrt.(v_pt[1].^2 .+ v_pt[2].^2 .+ 1.0f-12)
 end
 
 function edge_determinant(p, a, b)
