@@ -1,17 +1,39 @@
 using Zygote
 using Flux
 
+import Base.+
+import Base.*
+struct mono_shade
+    s :: Vector{Float32} # slope
+    o :: Float32         # offset
+end
+
+function mono_shade(constant_intensity :: Float32)
+    return mono_shade([0.0f0,0.0f0], constant_intensity)
+end
+
+(+)(x :: mono_shade, y :: mono_shade) = mono_shade(x.s + y.s, x.o + y.o)
+(*)(a :: Float32, x :: mono_shade) = mono_shade(a * x.s, a * x.o)
+struct color_shade
+    ms :: Vector{mono_shade}
+end
+
+function color_shade(constant_rgb :: Vector{Float32})
+    return color_shade([mono_shade(c) for c in constant_rgb])
+end
+
+(+)(x :: color_shade, y :: color_shade) = color_shade(x.ms .+ y.ms)
+(*)(a :: Float32, x :: color_shade) = color_shade( [a * m for m in x.ms])
 struct triangle
     a :: Vector{Float32}
     b :: Vector{Float32}
     c :: Vector{Float32}
-    color :: Vector{Float32}
+    csh :: color_shade 
 end
-
 struct circle
     r :: Float32
     c :: Vector{Float32}
-    color :: Vector{Float32}
+    csh :: color_shade  
 end
 
 struct scene
@@ -100,6 +122,22 @@ function signed_distance_function(ps, c :: circle) :: Matrix{Float32}
     return sqrt.(esq .+ 1.0f-12) .- r
 end
 
+function centre(t :: triangle) :: Vector{Float32}
+    return (t.a + t.b + t.c)/3
+end
+
+function centre(c :: circle) :: Vector{Float32}
+    return c.c
+end
+
+function color_gradient(ps, obj, W, H) :: Vector{Matrix{Float32}}
+    c = centre(obj)
+    xs = (2.0f0*(ps[1].-c[1])/W) :: Matrix{Float32}
+    ys = (2.0f0*(ps[2].-c[2])/H) :: Vector{Float32}
+
+    return [ m.s[1].*xs .+ m.s[2].*ys .+ m.o for m in obj.csh.ms]  
+end
+
 function parabolic_kernel_integral(r :: Matrix{Float32}) :: Matrix{Float32}
     rc = clamp.(r, -1, 1)
     return 0.5f0 .+ 0.25f0(rc.^3 - 3rc)
@@ -124,9 +162,11 @@ function render_objects(objs, ps) :: Array{Float32,3}
 
         cov_sum = cov_sum + cov
 
-        r_sum = r_sum + o.color[1] * cov
-        g_sum = g_sum + o.color[2] * cov
-        b_sum = b_sum + o.color[3] * cov
+        grad = color_gradient(ps, o, W, H)
+
+        r_sum = r_sum + grad[1] .* cov
+        g_sum = g_sum + grad[2] .* cov
+        b_sum = b_sum + grad[3] .* cov
     end
 
     cov_sum = max.(1.0f0, cov_sum)
