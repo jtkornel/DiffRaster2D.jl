@@ -24,11 +24,18 @@ end
 
 (+)(x :: color_shade, y :: color_shade) = color_shade(x.ms .+ y.ms)
 (*)(a :: Float32, x :: color_shade) = color_shade( [a * m for m in x.ms])
-struct triangle
-    a :: Vector{Float32}
-    b :: Vector{Float32}
-    c :: Vector{Float32}
+
+VertexRef = UInt
+Vertex = Vector{Float32}
+struct triangle{PointType}
+    a :: PointType
+    b :: PointType
+    c :: PointType
     csh :: color_shade 
+end
+
+function triangle{Vertex}(tri :: triangle{VertexRef}, vertices :: Matrix{Float32})
+    return triangle{Vertex}(vertices[tri.a,:], vertices[tri.b,:], vertices[tri.c,:], tri.csh)
 end
 struct circle
     r :: Float32
@@ -36,8 +43,19 @@ struct circle
     csh :: color_shade  
 end
 
+struct face_vertex_mesh{FaceType}
+    faces :: Vector{FaceType{VertexRef}}
+    vertices :: Matrix{Float32}
+end
+struct triangle_mesh
+    triangles :: Vector{triangle{Vertex}}
+end
+
+function triangle_mesh(fvmesh :: face_vertex_mesh{triangle})
+    return triangle_mesh([ triangle{Vertex}(f, fvmesh.vertices) for f in fvmesh.faces])
+end
 struct scene
-    ts :: Vector{triangle}
+    ts :: Vector{triangle{Vertex}}
     cs :: Vector{circle}
 end
 
@@ -78,14 +96,14 @@ function edge_determinant(p, a, b)
     return ((b[2] .- a[2]).*p[1] .+ (a[1] .- b[1]).*p[2] .+ (a[2].*b[1] .- a[1].*b[2]))
 end
 
-function edge_determinants(p, t :: triangle)
+function edge_determinants(p, t :: triangle{Vertex})
     F_ab = edge_determinant(p, t.a, t.b)
     F_bc = edge_determinant(p, t.b, t.c)
     F_ca = edge_determinant(p, t.c, t.a)
     return (F_ab, F_bc, F_ca)
 end
 
-function signed_distance_function(ps, t :: triangle) :: Matrix{Float32}
+function signed_distance_function(ps, t :: triangle{Vertex}) :: Matrix{Float32}
 
     d_ab = point_line_distance(ps, t.a, t.b)
     F_ab = edge_determinant(ps, t.a, t.b)
@@ -122,7 +140,7 @@ function signed_distance_function(ps, c :: circle) :: Matrix{Float32}
     return sqrt.(esq .+ 1.0f-12) .- r
 end
 
-function centre(t :: triangle) :: Vector{Float32}
+function centre(t :: triangle{Vertex}) :: Vector{Float32}
     return (t.a + t.b + t.c)/3
 end
 
