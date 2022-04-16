@@ -4,18 +4,26 @@ using Flux
 import Base.+
 import Base.*
 struct mono_shade
-    s :: Vector{Float32} # slope
-    o :: Float32         # offset
+    s :: Vector{Float32} # slope/offset
 end
+
+Flux.@functor mono_shade
 
 function mono_shade(constant_intensity :: Float32)
-    return mono_shade([0.0f0,0.0f0], constant_intensity)
+    return mono_shade([0.0f0,0.0f0, constant_intensity])
 end
 
-(+)(x :: mono_shade, y :: mono_shade) = mono_shade(x.s + y.s, x.o + y.o)
-(*)(a :: Float32, x :: mono_shade) = mono_shade(a * x.s, a * x.o)
+(+)(x :: mono_shade, y :: mono_shade) = mono_shade(x.s + y.s)
+(*)(a :: Float32, x :: mono_shade) = mono_shade(a * x.s)
 struct color_shade
     ms :: Vector{mono_shade}
+end
+
+Flux.@functor color_shade
+Flux.trainable(csh::color_shade) = (ms = csh.ms,)
+
+function color_shade(constant_eq_rgb :: Float32)
+    return color_shade([constant_eq_rgb for _ in 1:3])
 end
 
 function color_shade(constant_rgb :: Vector{Float32})
@@ -34,6 +42,9 @@ struct triangle{PointType}
     csh :: color_shade 
 end
 
+Flux.@functor triangle{VertexRef}
+Flux.trainable(tr::triangle{VertexRef}) = (csh=tr.csh,)
+
 function triangle{Vertex}(tri :: triangle{VertexRef}, vertices :: Matrix{Float32})
     return triangle{Vertex}(vertices[tri.a,:], vertices[tri.b,:], vertices[tri.c,:], tri.csh)
 end
@@ -44,19 +55,18 @@ struct circle
 end
 
 struct face_vertex_mesh{FaceType}
-    faces :: Vector{FaceType{VertexRef}}
+    faces :: Vector{FaceType}
     vertices :: Matrix{Float32}
 end
-struct triangle_mesh
-    triangles :: Vector{triangle{Vertex}}
+
+Flux.@functor face_vertex_mesh{triangle{VertexRef}}
+#Flux.trainable(fvm::face_vertex_mesh{triangle{VertexRef}}) = (vertices=fvm.vertices, )
+struct object_mesh{ObjectType}
+    objects :: Vector{ObjectType}
 end
 
-function triangle_mesh(fvmesh :: face_vertex_mesh{triangle})
-    return triangle_mesh([ triangle{Vertex}(f, fvmesh.vertices) for f in fvmesh.faces])
-end
-struct scene
-    ts :: Vector{triangle{Vertex}}
-    cs :: Vector{circle}
+function object_mesh{triangle{Vertex}}(fvmesh :: face_vertex_mesh{triangle{VertexRef}})
+    return object_mesh{triangle{Vertex}}([ triangle{Vertex}(f, fvmesh.vertices) for f in fvmesh.faces])
 end
 
 # u projected onto v, clamped to length of v
@@ -153,7 +163,7 @@ function color_gradient(ps, obj, W, H) :: Vector{Matrix{Float32}}
     xs = (2.0f0*(ps[1].-c[1])/W) :: Matrix{Float32}
     ys = (2.0f0*(ps[2].-c[2])/H) :: Vector{Float32}
 
-    return [ m.s[1].*xs .+ m.s[2].*ys .+ m.o for m in obj.csh.ms]  
+    return [ m.s[1].*xs .+ m.s[2].*ys .+ m.s[3] for m in obj.csh.ms]  
 end
 
 function parabolic_kernel_integral(r :: Matrix{Float32}) :: Matrix{Float32}
@@ -193,11 +203,16 @@ function render_objects(objs, ps) :: Array{Float32,3}
     return permutedims(reshape([r_sum; g_sum; b_sum], (H,3,W)), (2,1,3))./cov_sum
 end
 
-function render_objects(objs, W, H) :: Array{Float32,3}
+function image_sample_points(W, H)
     xs = [Float32(x) for x in 0:W-1] :: Vector{Float32}
     ys = [Float32(y) for y in 0:H-1] :: Vector{Float32}
     
     points = (collect(xs'), ys)
+    return points
+end
+
+function render_objects(objs, W, H) :: Array{Float32,3}
+    points = image_sample_points(W, H)
     return render_objects(objs, points) 
 end
 
@@ -212,12 +227,5 @@ function mse(x :: Array{Float32,3}, y :: Array{Float32,3}) :: Float32
     mse = sum(e)/length(e)
 
     return mse
-end
-
-function create_render_loss(ref_img)
-    H, W = size(ref_img)    
-    loss_fun = objects -> mae(render_objects(objects, H, W), ref_img)
-
-    return loss_fun
 end
 
