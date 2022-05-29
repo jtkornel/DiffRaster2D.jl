@@ -3,9 +3,9 @@ using ImageView
 using ColorTypes
 using ImageShow
 
-include("Diff2DRaster.jl")
-include("colortypes_img_util.jl")
-include("optim_util.jl")
+include("../Diff2DRaster.jl")
+include("../colortypes_img_util.jl")
+include("../optim_util.jl")
 
 
 img = testimage("chelsea")

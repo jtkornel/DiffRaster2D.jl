@@ -2,11 +2,10 @@ using TestImages
 using ImageShow
 using Flux
 
-include("Diff2DRaster.jl")
-include("colortypes_img_util.jl")
-include("triangle_mesh_util.jl")
-include("optim_util.jl")
-
+include("../Diff2DRaster.jl")
+include("../colortypes_img_util.jl")
+include("../triangle_mesh_util.jl")
+include("../optim_util.jl")
 
 img = testimage("chelsea")
 
