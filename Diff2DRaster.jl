@@ -139,13 +139,6 @@ function edge_determinant(p, a, b)
     return ((b[2] .- a[2]).*p[1] .+ (a[1] .- b[1]).*p[2] .+ (a[2].*b[1] .- a[1].*b[2]))
 end
 
-function edge_determinants(p, t :: triangle{Vertex})
-    F_ab = edge_determinant(p, t.a, t.b)
-    F_bc = edge_determinant(p, t.b, t.c)
-    F_ca = edge_determinant(p, t.c, t.a)
-    return (F_ab, F_bc, F_ca)
-end
-
 function signed_distance_function(ps, t :: triangle{Vertex}) :: Matrix{Float32}
 
     d_ab = point_line_distance(ps, t.a, t.b)
