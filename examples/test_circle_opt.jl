@@ -5,9 +5,9 @@ using ImageShow
 using Flux
 #using FileIO
 
-include("Diff2DRaster.jl")
-include("colortypes_img_util.jl")
-include("optim_util.jl")
+include("../Diff2DRaster.jl")
+include("../colortypes_img_util.jl")
+include("../optim_util.jl")
 
 function nonneg_regularizer(v :: Float32)
     return v < 0 ? 128*v.^2 : v.^2
