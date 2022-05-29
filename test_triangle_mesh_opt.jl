@@ -14,20 +14,21 @@ H, W = size(img)
 
 fv_msh = triangulate_image(img)
 img_arr = array_image(img)
+fv_msh = sample_triangle_colors(img_arr, fv_msh)
 points = image_sample_points(W, H)
 
 ps = Flux.params(fv_msh)
 
-opt = ADAGrad(0.8)
+opt = AMSGrad(0.6)
 
 
-for iti in 1:500
-    println("Inner iteration ",iti)
+for iti in 1:128
+    println("Iteration ", iti)
     println("Calculating gradient")
     gs = Flux.gradient(ps) do
         tr_msh = object_mesh{triangle{Vertex}}(fv_msh)
         l = render_loss(img_arr, tr_msh.objects, points)
-        println("Loss ", l)
+        println("Loss (RMS) ", sqrt(l))
         return l
     end
     println("Updating")
