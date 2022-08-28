@@ -11,12 +11,12 @@ This toolbox shows the concept using the [Zygote](https://github.com/FluxML/Zygo
 To test, run `examples/visualize_circle_recovery.jl`
 
 This shows selected iterations when fitting a shaded circle:
-<img alt="triangle_mesh_optimization" src="https://raw.githubusercontent.com/jtkornel/DiffRaster2D.jl/main/media/triangle_mesh_optimization.png">
+<img alt="visualize_circle_recovery" src="https://raw.githubusercontent.com/jtkornel/DiffRaster2D.jl/main/media/visualize_circle_recovery.png">
 
 For a more advanced example fitting a triangle mesh to a raster image, run `examples/triangle_mesh_optimization.jl`
 
 By running for quite a few iterations you should get something like this:
-<img width="449" alt="chelsea_circle_rendering" src="https://user-images.githubusercontent.com/8590187/146675817-8fd2c76a-5f85-4575-b3f2-12742e2cd54d.png">
+<img alt="triangle_mesh_optimization" src="https://raw.githubusercontent.com/jtkornel/DiffRaster2D.jl/main/media/triangle_mesh_optimization.png">
 
 
 ## Todo-list
