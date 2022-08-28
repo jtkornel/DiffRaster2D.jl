@@ -246,16 +246,3 @@ function render_objects(objs, W, H) :: Array{Float32,3}
     points = image_sample_points(W, H)
     return render_objects(objs, points) 
 end
-
-function mae(x :: Array{Float32,3}, y :: Array{Float32,3}) :: Float32
-    e = abs.(x .- y)
-    mae = sum(e)/length(e)
-    return mae
-end
-
-function mse(x :: Array{Float32,3}, y :: Array{Float32,3}) :: Float32
-    e = (x .- y) .^2
-    mse = sum(e)/length(e)
-
-    return mse
-end
