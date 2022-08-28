@@ -96,12 +96,12 @@ end
 
 Flux.@functor face_vertex_mesh{triangle{VertexRef}}
 #Flux.trainable(fvm::face_vertex_mesh{triangle{VertexRef}}) = (vertices=fvm.vertices, )
-struct object_mesh{ObjectType}
-    objects :: Vector{ObjectType}
+struct shape_mesh{ShapeType}
+    shapes :: Vector{ShapeType}
 end
 
-function object_mesh{triangle{Vertex}}(fvmesh :: face_vertex_mesh{triangle{VertexRef}})
-    return object_mesh{triangle{Vertex}}([ triangle{Vertex}(f, fvmesh.vertices) for f in fvmesh.faces])
+function shape_mesh{triangle{Vertex}}(fvmesh :: face_vertex_mesh{triangle{VertexRef}})
+    return shape_mesh{triangle{Vertex}}([ triangle{Vertex}(f, fvmesh.vertices) for f in fvmesh.faces])
 end
 
 # u projected onto v, clamped to length of v
@@ -141,16 +141,16 @@ function edge_determinant(p, a, b)
     return ((b[2] .- a[2]).*p[1] .+ (a[1] .- b[1]).*p[2] .+ (a[2].*b[1] .- a[1].*b[2]))
 end
 
-function signed_distance_function(ps, t :: triangle{Vertex}) :: Matrix{Float32}
+function signed_distance_function(points, t :: triangle{Vertex}) :: Matrix{Float32}
 
-    d_ab = point_line_distance(ps, t.a, t.b)
-    F_ab = edge_determinant(ps, t.a, t.b)
+    d_ab = point_line_distance(points, t.a, t.b)
+    F_ab = edge_determinant(points, t.a, t.b)
 
-    d_bc = point_line_distance(ps, t.b, t.c)
-    F_bc = edge_determinant(ps, t.b, t.c)
+    d_bc = point_line_distance(points, t.b, t.c)
+    F_bc = edge_determinant(points, t.b, t.c)
 
-    d_ca = point_line_distance(ps, t.c, t.a)
-    F_ca = edge_determinant(ps, t.c, t.a)
+    d_ca = point_line_distance(points, t.c, t.a)
+    F_ca = edge_determinant(points, t.c, t.a)
 
     s_ab = F_ab .< 0
     s_bc = F_bc .< 0
@@ -169,11 +169,11 @@ function signed_distance_function(ps, t :: triangle{Vertex}) :: Matrix{Float32}
     return (s .* d)
 end
 
-function signed_distance_function(ps, c :: circle)
+function signed_distance_function(points, c :: circle)
     cr = c.c
     r = c.r
-    xs = ps[1]
-    ys = ps[2]
+    xs = points[1]
+    ys = points[2]
     esq = ((cr[1] .- xs).^2 .+ (cr[2] .- ys).^2)
     return sqrt.(esq .+ 1.0f-12) .- r
 end
@@ -186,15 +186,15 @@ function centre(c :: circle) :: Vector{Float32}
     return c.c
 end
 
-function color_gradient(ps, obj, W, H) :: Vector{Matrix{Float32}}
-    c = centre(obj)
+function shading(points, shape, W, H) :: Vector{Matrix{Float32}}
+    c = centre(shape)
 
-    sd = signed_distance_function(([c[1]], [c[2]]), obj)
+    sd = signed_distance_function(([c[1]], [c[2]]), shape)
     d = abs(sd[1])
-    xs = ((ps[1].-c[1])/d) :: Matrix{Float32}
-    ys = ((ps[2].-c[2])/d) :: Vector{Float32}
+    xs = ((points[1].-c[1])/d) :: Matrix{Float32}
+    ys = ((points[2].-c[2])/d) :: Vector{Float32}
 
-    return [ m.s[1].*xs .+ m.s[2].*ys .+ m.s[3] for m in obj.csh.ms]  
+    return [ m.s[1].*xs .+ m.s[2].*ys .+ m.s[3] for m in shape.csh.ms]  
 end
 
 function parabolic_kernel_integral(r :: Matrix{Float32}) :: Matrix{Float32}
@@ -202,30 +202,30 @@ function parabolic_kernel_integral(r :: Matrix{Float32}) :: Matrix{Float32}
     return 0.5f0 .+ 0.25f0(rc.^3 - 3rc)
 end
 
-function sdf_coverage(ps, obj) :: Matrix{Float32}
-    return parabolic_kernel_integral(signed_distance_function(ps, obj))
+function coverage(points, shape) :: Matrix{Float32}
+    return parabolic_kernel_integral(signed_distance_function(points, shape))
 end
 
-function render_objects(objs, ps) :: Array{Float32,3}
+function render(shapes, points) :: Array{Float32,3}
 
-    W = length(ps[1])
-    H = length(ps[2])
+    W = length(points[1])
+    H = length(points[2])
 
     r_sum = zeros(Float32, (H, W))
     g_sum = zeros(Float32, (H, W))
     b_sum = zeros(Float32, (H, W))
     cov_sum = zeros(Float32, (H, W))
 
-    for o in objs
-        cov = sdf_coverage(ps, o)
+    for s in shapes
+        cov = coverage(points, s)
 
         cov_sum = cov_sum + cov
 
-        grad = color_gradient(ps, o, W, H)
+        shade = shading(points, s, W, H)
 
-        r_sum = r_sum + grad[1] .* cov
-        g_sum = g_sum + grad[2] .* cov
-        b_sum = b_sum + grad[3] .* cov
+        r_sum = r_sum + shade[1] .* cov
+        g_sum = g_sum + shade[2] .* cov
+        b_sum = b_sum + shade[3] .* cov
     end
 
     cov_sum = max.(1.0f0, cov_sum)
@@ -234,7 +234,7 @@ function render_objects(objs, ps) :: Array{Float32,3}
     return permutedims(reshape([r_sum; g_sum; b_sum], (H,3,W)), (2,1,3))./cov_sum
 end
 
-function image_sample_points(W, H)
+function raster_sampling_grid(W, H)
     xs = [Float32(x) for x in 0:W-1] :: Vector{Float32}
     ys = [Float32(y) for y in 0:H-1] :: Vector{Float32}
     
@@ -242,7 +242,7 @@ function image_sample_points(W, H)
     return points
 end
 
-function render_objects(objs, W, H) :: Array{Float32,3}
-    points = image_sample_points(W, H)
-    return render_objects(objs, points) 
+function render(shapes, W, H) :: Array{Float32,3}
+    points = raster_sampling_grid(W, H)
+    return render(shapes, points) 
 end

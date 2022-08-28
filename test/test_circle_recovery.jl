@@ -9,9 +9,9 @@ ref_circ = circle([15.0f0], [20.0f0,20.0f0], color_shade([mono_shade([-80, 80, 1
 circ = circle([25.0f0], [10.0f0,10.0f0], color_shade([mono_shade([0, 0, 0.0f0]), mono_shade([0, 0, 128.0f0]), mono_shade([0, 0, 0.0f0])]))
 
 
-points = image_sample_points(W, H)
+points = raster_sampling_grid(W, H)
 
-ref_img = render_objects([ref_circ], points)
+ref_img = render([ref_circ], points)
 
 
 circs = [circ]
