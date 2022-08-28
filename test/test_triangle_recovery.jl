@@ -23,7 +23,6 @@ for iti in 1:128
     gs = Flux.gradient(ps) do
         tr_msh = object_mesh{triangle{Vertex}}(fv_msh)
         l = render_loss(ref_img, tr_msh.objects, points)
-        println(l)
         return l
     end
 
