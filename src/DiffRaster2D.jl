@@ -14,15 +14,15 @@ export triangle
 
 export centre_color, average_color
 
-export face_vertex_mesh, object_mesh
+export face_vertex_mesh, shape_mesh
 
 export signed_distance_function
 export centre
-export color_gradient
+export shading
 export parabolic_kernel_integral
-export sdf_coverage
-export render_objects
-export image_sample_points
+export coverage
+export render
+export raster_sampling_grid
 
 export mae, mse
 

@@ -28,9 +28,9 @@ function nonneg_regularizer(tr :: triangle)
     return nonneg_regularizer(tr.color/1280.0f0) + (nonneg_regularizer(tr.a) + nonneg_regularizer(tr.b) + nonneg_regularizer(tr.c))/3
 end
 
-function scene_regularizer(objs) :: Float32
+function scene_regularizer(shapes) :: Float32
     
-    crs = [nonneg_regularizer(o) for o in objs]
+    crs = [nonneg_regularizer(o) for o in shapes]
 
     cr = sum(crs)/length(crs)
 
@@ -40,12 +40,12 @@ function scene_regularizer(objs) :: Float32
 end
 
 
-function show_render(objs, W, H)
-    rn = render_objects(objs, W, H)
+function render_to_colortypes(shapes, W, H)
+    rn = render(shapes, W, H)
     return colortypes_image(rn/255, W, H)
 end
 
-function optimize_objects_to_image(img)
+function optimize_shapes_to_image(img)
 
     H, W = size(img)
     
@@ -54,19 +54,19 @@ function optimize_objects_to_image(img)
     # Create inital grid of circles
     N, M = 12, 12
     r = max(1.4f0*W/(N*2), 1.3f0*H/(M*2))
-    objs = [circle([r], [x*W/(N-1), y*H/(M-1)], color_shade([128.0f0, 128.0f0, 128.0f0])) for x in 0:(N-1) for y in 0:(M-1)]
+    shapes = [circle([r], [x*W/(N-1), y*H/(M-1)], color_shade([128.0f0, 128.0f0, 128.0f0])) for x in 0:(N-1) for y in 0:(M-1)]
 
-    points = image_sample_points(W, H)
+    points = raster_sampling_grid(W, H)
 
-    par = Flux.params(objs)
+    par = Flux.params(shapes)
     opt = AMSGrad(0.6)
 
     for ii in 1:64
         println("iteration $ii")
 
         gs = Flux.gradient(par) do
-            l = render_loss(img_arr, objs, points)
-            r = scene_regularizer(objs)
+            l = render_loss(img_arr, shapes, points)
+            r = scene_regularizer(shapes)
             println("Loss (RMS): ", sqrt(l))
             println("Regularizer: ", r)
             return l + r
@@ -75,7 +75,7 @@ function optimize_objects_to_image(img)
         Flux.Optimise.update!(opt, par, gs)
     end
 
-    show_render(objs, W, H)
+    render_to_colortypes(shapes, W, H)
 end
 
-optimize_objects_to_image(testimage("mandrill"))
+optimize_shapes_to_image(testimage("mandrill"))

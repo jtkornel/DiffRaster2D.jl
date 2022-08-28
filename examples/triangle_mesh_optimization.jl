@@ -11,7 +11,7 @@ H, W = size(img)
 fv_msh = triangulate_image(img)
 img_arr = array_image(img)
 fv_msh = sample_triangle_colors(img_arr, fv_msh)
-points = image_sample_points(W, H)
+points = raster_sampling_grid(W, H)
 
 ps = Flux.params(fv_msh)
 
@@ -22,8 +22,8 @@ for iti in 1:128
     println("Iteration ", iti)
     println("Calculating gradient")
     gs = Flux.gradient(ps) do
-        tr_msh = object_mesh{triangle{Vertex}}(fv_msh)
-        l = render_loss(img_arr, tr_msh.objects, points)
+        tr_msh = shape_mesh{triangle{Vertex}}(fv_msh)
+        l = render_loss(img_arr, tr_msh.shapes, points)
         println("Loss (RMS) ", sqrt(l))
         return l
     end
@@ -31,6 +31,6 @@ for iti in 1:128
     Flux.Optimise.update!(opt, ps, gs)
 end
 
-tr_msh = object_mesh{triangle{Vertex}}(fv_msh)
-rn=render_objects(tr_msh.objects, points)
+tr_msh = shape_mesh{triangle{Vertex}}(fv_msh)
+rn=render(tr_msh.shapes, points)
 colortypes_image(rn/255, W, H)
