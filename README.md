@@ -1,3 +1,5 @@
+![ci tests](https://github.com/github/docs/actions/workflows/main.yml/badge.svg)
+
 # DiffRaster2D.jl - Differentiable 2d rasterizer in Julia
 
 A basic rasterizer which lets you take any image and create a vector-graphics rendering from it, using the same techiques that form the backbone of deep learning.
