@@ -1,4 +1,4 @@
-# Diff2DRaster.jl - Differentiable 2d rasterizer in Julia
+# DiffRaster2D.jl - Differentiable 2d rasterizer in Julia
 
 A basic rasterizer which lets you take any image and create a vector-graphics rendering from it, using the same techiques that form the backbone of deep learning.
 
@@ -8,19 +8,18 @@ The code and experiments here demonstrate that SDF does not _necessarily imply_ 
 
 This toolbox shows the concept using the [Zygote](https://github.com/FluxML/Zygote.jl) framework in [Julia](https://julialang.org). It is work in progress and only supports a few primitives.
 
-To test, run `test_gradient_opt.jl`
+To test, run `examples/visualize_circle_recovery.jl`
 
-By running for quite a few iterations you should get something like this (rendered from 256 circles):
+This shows selected iterations when fitting a shaded circle:
+<img width="449" alt="chelsea_circle_rendering" src="https://user-images.githubusercontent.com/8590187/146675817-8fd2c76a-5f85-4575-b3f2-12742e2cd54d.png">
 
+For a more advanced example fitting a triangle mesh to a raster image, run `examples/triangle_mesh_optimization.jl`
+
+By running for quite a few iterations you should get something like this:
 <img width="449" alt="chelsea_circle_rendering" src="https://user-images.githubusercontent.com/8590187/146675817-8fd2c76a-5f85-4575-b3f2-12742e2cd54d.png">
 
 
 ## Todo-list
 
-* Support more primitives and gradient-fill
-* Test that we can recover basic figures and some corner cases (unit tests?)
-* Triangle mesh support
 * Tailor for more efficient gradients from Zygote 
 * Faster rendering with tiles or kD-tree
-* Use a proper deep learning framework for the optimization
-
