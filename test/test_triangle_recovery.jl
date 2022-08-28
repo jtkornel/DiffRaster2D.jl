@@ -1,6 +1,5 @@
-using MosaicViews
-
 using DiffRaster2D
+using Flux
 
 W, H = 40, 40
 
@@ -29,11 +28,9 @@ for iti in 1:128
     end
 
     Flux.Optimise.update!(opt, ps, gs)
-
-    tr_msh = object_mesh{triangle{Vertex}}(fv_msh)
-    img = render_objects(tr_msh.objects, points)
-    im = (colortypes_image(img/255, W, H))
-    push!(images, im)
 end
 
-mosaicview(images..., ncol=16,rowmajor=true)
+tr_msh = object_mesh{triangle{Vertex}}(fv_msh)
+l = render_loss(ref_img, tr_msh.objects, points)
+
+@test l < 0.01

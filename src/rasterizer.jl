@@ -50,6 +50,8 @@ struct triangle{PointType}
     csh :: color_shade 
 end
 
+Flux.@functor triangle{Vertex}
+
 Flux.@functor triangle{VertexRef}
 Flux.trainable(tr::triangle{VertexRef}) = (csh=tr.csh,)
 
@@ -257,4 +259,3 @@ function mse(x :: Array{Float32,3}, y :: Array{Float32,3}) :: Float32
 
     return mse
 end
-

@@ -1,13 +1,8 @@
-#using Zygote
 using ImageShow
-#using ColorTypes
-#using TestImages
+using TestImages
 using Flux
-#using FileIO
 
-include("../Diff2DRaster.jl")
-include("../colortypes_img_util.jl")
-include("../optim_util.jl")
+using DiffRaster2D
 
 function nonneg_regularizer(v :: Float32)
     return v < 0 ? 128*v.^2 : v.^2

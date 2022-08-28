@@ -1,8 +1,6 @@
-using MosaicViews
-using ImageShow
-using Flux
-
 using DiffRaster2D
+
+using Flux
 
 W, H = 40, 40
 
@@ -21,27 +19,15 @@ ps = Flux.params(circ)
 
 opt = AMSGrad(0.75)
 
-images = []
 for iti in 1:192
     gs = Flux.gradient(ps) do
         l = render_loss(ref_img, circs, points)
-        println(l)
         return l
     end
 
     Flux.Optimise.update!(opt, ps, gs)
-
-    if ((iti-1) % 1 == 0)
-        img = render_objects(circs, points)
-        im = (colortypes_image(img/255, W, H))
-        push!(images, im)
-    end
 end
 
-gs = Flux.gradient(ps) do
-    l = render_loss(ref_img, circs, points)
-    println(l)
-    return l
-end
+l = render_loss(ref_img, circs, points)
 
-mosaicview(images..., ncol=16,rowmajor=true)
+@test l < 0.32
