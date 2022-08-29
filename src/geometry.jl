@@ -48,19 +48,19 @@ function centre(c :: circle) :: Vector{Float32}
     return c.c
 end
 
-function centre_color(tri_vr :: triangle{VertexRef}, vertices :: Matrix{Float32}, img :: Array{Float32,3})
-    tri_v = triangle{Vertex}(tri_vr, vertices)
-    c = round.(centre(tri_v))
-
-    color = img[:, UInt(c[2]), UInt(c[1])]
-    return color
-end
-
 function sample(img :: Array{Float32, 3}, c :: Float32, r:: Float32)
     c = clamp(round(c), 1, size(img)[3])
     r = clamp(round(r), 1, size(img)[2])
 
     img[:, UInt(r), UInt(c)]
+end
+
+function centre_color(tri_vr :: triangle{VertexRef}, vertices :: Matrix{Float32}, img :: Array{Float32,3})
+    tri_v = triangle{Vertex}(tri_vr, vertices)
+    c = round.(centre(tri_v))
+
+    color = sample(img, c[1], c[2])
+    return color
 end
 
 function average_color(tri_vr :: triangle{VertexRef}, vertices :: Matrix{Float32}, img :: Array{Float32,3})
