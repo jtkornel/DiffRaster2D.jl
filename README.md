@@ -1,4 +1,4 @@
-![ci tests](https://github.com/jtkornel/DiffRaster2D.jl/actions/workflows/main.yml/badge.svg)
+![ci tests](https://github.com/jtkornel/DiffRaster2D.jl/actions/workflows/main.yml/badge.svg)  [![codecov](https://codecov.io/gh/jtkornel/DiffRaster2D.jl/branch/main/graph/badge.svg?token=E59A020AY9)](https://codecov.io/gh/jtkornel/DiffRaster2D.jl)
 
 # DiffRaster2D.jl - Differentiable 2d rasterizer in Julia
 
