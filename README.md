@@ -28,7 +28,6 @@ Note that since the vertex positions are unconstrained, the mesh quality may end
 ## Todo-list
 
 * A better selection of SDF primitives
-* API cleanup
 * Documentation
 * Integration with other Julia geometry packages
 * Mesh quality regularization
